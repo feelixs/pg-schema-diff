@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"github.com/stripe/pg-schema-diff/internal/pgengine"
+	"github.com/feelixs/pg-schema-diff/internal/pgengine"
 )
 
 type cmdTestSuite struct {

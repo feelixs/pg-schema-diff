@@ -13,13 +13,13 @@ import (
 	"github.com/kr/pretty"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/stripe/pg-schema-diff/internal/pgdump"
-	"github.com/stripe/pg-schema-diff/internal/pgengine"
-	"github.com/stripe/pg-schema-diff/pkg/diff"
-	"github.com/stripe/pg-schema-diff/pkg/log"
-	"github.com/stripe/pg-schema-diff/pkg/sqldb"
+	"github.com/feelixs/pg-schema-diff/internal/pgdump"
+	"github.com/feelixs/pg-schema-diff/internal/pgengine"
+	"github.com/feelixs/pg-schema-diff/pkg/diff"
+	"github.com/feelixs/pg-schema-diff/pkg/log"
+	"github.com/feelixs/pg-schema-diff/pkg/sqldb"
 
-	"github.com/stripe/pg-schema-diff/pkg/tempdb"
+	"github.com/feelixs/pg-schema-diff/pkg/tempdb"
 )
 
 var (

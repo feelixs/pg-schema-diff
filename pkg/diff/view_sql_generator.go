@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/stripe/pg-schema-diff/internal/schema"
+	"github.com/feelixs/pg-schema-diff/internal/schema"
 )
 
 type viewDiff struct {
@@ -34,7 +34,7 @@ func buildViewDiff(
 	// For now, we will go with the simplest behavior and always recreate the view if a dependent column/table,
 	// and that column/table is deleted/recreated. In part, this is because we cannot depend on individual column
 	// changes...all added and removes columns are combined into the same SQL vertex.
-	// - See https://github.com/stripe/pg-schema-diff/issues/135#issuecomment-2357382217 for details.
+	// - See https://github.com/feelixs/pg-schema-diff/issues/135#issuecomment-2357382217 for details.
 	// - For some table X, it is currently not possible to create a SQL statement outside the table sql generator
 	// that comes before a column Y's delete statement but after a column Z's add statement.
 	for _, t := range old.TableDependencies {

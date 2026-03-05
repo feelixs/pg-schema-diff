@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
-	"github.com/stripe/pg-schema-diff/internal/pgengine"
-	internalschema "github.com/stripe/pg-schema-diff/internal/schema"
-	"github.com/stripe/pg-schema-diff/pkg/schema"
+	"github.com/feelixs/pg-schema-diff/internal/pgengine"
+	internalschema "github.com/feelixs/pg-schema-diff/internal/schema"
+	"github.com/feelixs/pg-schema-diff/pkg/schema"
 )
 
 type schemaTestSuite struct {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	internalschema "github.com/stripe/pg-schema-diff/internal/schema"
-	"github.com/stripe/pg-schema-diff/pkg/sqldb"
+	internalschema "github.com/feelixs/pg-schema-diff/internal/schema"
+	"github.com/feelixs/pg-schema-diff/pkg/sqldb"
 )
 
 type GetSchemaOpt = internalschema.GetSchemaOpt

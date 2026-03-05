@@ -10,10 +10,10 @@ import (
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/stretchr/testify/suite"
-	"github.com/stripe/pg-schema-diff/internal/pgengine"
-	internalschema "github.com/stripe/pg-schema-diff/internal/schema"
+	"github.com/feelixs/pg-schema-diff/internal/pgengine"
+	internalschema "github.com/feelixs/pg-schema-diff/internal/schema"
 
-	"github.com/stripe/pg-schema-diff/pkg/log"
+	"github.com/feelixs/pg-schema-diff/pkg/log"
 )
 
 type onInstanceTempDbFactorySuite struct {

@@ -7,7 +7,7 @@ import (
 	"regexp"
 
 	"github.com/hashicorp/go-version"
-	"github.com/stripe/pg-schema-diff/internal/pgengine"
+	"github.com/feelixs/pg-schema-diff/internal/pgengine"
 )
 
 const (

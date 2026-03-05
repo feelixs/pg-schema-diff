@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stripe/pg-schema-diff/internal/pgengine"
+	"github.com/feelixs/pg-schema-diff/internal/pgengine"
 
 	"github.com/stretchr/testify/require"
 )

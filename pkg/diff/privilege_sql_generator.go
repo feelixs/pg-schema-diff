@@ -3,7 +3,7 @@ package diff
 import (
 	"fmt"
 
-	"github.com/stripe/pg-schema-diff/internal/schema"
+	"github.com/feelixs/pg-schema-diff/internal/schema"
 )
 
 var (

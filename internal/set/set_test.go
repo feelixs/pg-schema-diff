@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stripe/pg-schema-diff/internal/set"
+	"github.com/feelixs/pg-schema-diff/internal/set"
 )
 
 func TestSet_Add(t *testing.T) {

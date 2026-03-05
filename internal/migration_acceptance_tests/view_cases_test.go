@@ -3,7 +3,7 @@ package migration_acceptance_tests
 import (
 	"testing"
 
-	"github.com/stripe/pg-schema-diff/pkg/diff"
+	"github.com/feelixs/pg-schema-diff/pkg/diff"
 )
 
 var viewAcceptanceTestCases = []acceptanceTestCase{

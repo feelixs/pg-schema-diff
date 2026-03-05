@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/stripe/pg-schema-diff/internal/util"
+	"github.com/feelixs/pg-schema-diff/internal/util"
 )
 
 func TestNoOpCloser(t *testing.T) {

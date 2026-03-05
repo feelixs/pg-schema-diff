@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stripe/pg-schema-diff/internal/schema"
+	"github.com/feelixs/pg-schema-diff/internal/schema"
 )
 
 func TestTransformDiffDataPackNewTables(t *testing.T) {
