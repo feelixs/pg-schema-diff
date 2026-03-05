@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/spf13/cobra"
@@ -26,6 +27,10 @@ func buildDumpCmd() *cobra.Command {
 	cmd.Flags().StringArrayVar(&includeSchemas, "include-schema", nil, "Include the specified schema in the dump")
 	cmd.Flags().StringArrayVar(&excludeSchemas, "exclude-schema", nil, "Exclude the specified schema from the dump")
 
+	var tempDbStatementTimeout time.Duration
+	cmd.Flags().DurationVar(&tempDbStatementTimeout, "temp-db-statement-timeout", 0,
+		"Statement timeout for temp database operations (e.g., 30s, 1m). Defaults to 3s if not set.")
+
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		connConfig, err := parseConnectionFlags(connFlags)
 		if err != nil {
@@ -35,9 +40,10 @@ func buildDumpCmd() *cobra.Command {
 		cmd.SilenceUsage = true
 
 		plan, err := generateDump(cmd.Context(), generateDumpParams{
-			connConfig:     connConfig,
-			includeSchemas: includeSchemas,
-			excludeSchemas: excludeSchemas,
+			connConfig:             connConfig,
+			includeSchemas:         includeSchemas,
+			excludeSchemas:         excludeSchemas,
+			tempDbStatementTimeout: tempDbStatementTimeout,
 		})
 		if err != nil {
 			return err
@@ -51,9 +57,10 @@ func buildDumpCmd() *cobra.Command {
 }
 
 type generateDumpParams struct {
-	connConfig     *pgx.ConnConfig
-	includeSchemas []string
-	excludeSchemas []string
+	connConfig             *pgx.ConnConfig
+	includeSchemas         []string
+	excludeSchemas         []string
+	tempDbStatementTimeout time.Duration
 }
 
 func generateDump(ctx context.Context, params generateDumpParams) (diff.Plan, error) {
@@ -64,11 +71,15 @@ func generateDump(ctx context.Context, params generateDumpParams) (diff.Plan, er
 	defer connPool.Close()
 	connPool.SetMaxOpenConns(defaultMaxConnections)
 
+	tempDbOpts := []tempdb.OnInstanceFactoryOpt{tempdb.WithRootDatabase(params.connConfig.Database)}
+	if params.tempDbStatementTimeout > 0 {
+		tempDbOpts = append(tempDbOpts, tempdb.WithStatementTimeout(params.tempDbStatementTimeout))
+	}
 	tempDbFactory, err := tempdb.NewOnInstanceFactory(ctx, func(ctx context.Context, dbName string) (*sql.DB, error) {
 		cfg := params.connConfig.Copy()
 		cfg.Database = dbName
 		return openDbWithPgxConfig(cfg)
-	}, tempdb.WithRootDatabase(params.connConfig.Database))
+	}, tempDbOpts...)
 	if err != nil {
 		return diff.Plan{}, fmt.Errorf("creating temp db factory: %w", err)
 	}
