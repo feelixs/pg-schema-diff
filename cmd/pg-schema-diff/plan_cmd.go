@@ -44,6 +44,9 @@ func buildPlanCmd() *cobra.Command {
 	toSchemaFlags := createSchemaSourceFlags(cmd, "to-")
 	tempDbConnFlags := createConnectionFlags(cmd, "temp-db-", "The temporary database to use for schema extraction. This is optional if diffing to/from a Postgres instance")
 	planOptsFlags := createPlanOptionsFlags(cmd)
+	var tempDbStatementTimeout time.Duration
+	cmd.Flags().DurationVar(&tempDbStatementTimeout, "temp-db-statement-timeout", 0,
+		"Statement timeout for temp database operations (e.g., 30s, 1m). Defaults to 3s if not set.")
 	outputFmt := outputFormatSql
 	cmd.Flags().Var(
 		&outputFmt,
@@ -91,11 +94,12 @@ func buildPlanCmd() *cobra.Command {
 		cmd.SilenceUsage = true
 
 		plan, err := generatePlan(cmd.Context(), generatePlanParameters{
-			fromSchema:       fromSchema,
-			toSchema:         toSchema,
-			tempDbConnConfig: tempDbConnConfig,
-			planOptions:      planOpts,
-			logger:           logger,
+			fromSchema:             fromSchema,
+			toSchema:               toSchema,
+			tempDbConnConfig:       tempDbConnConfig,
+			planOptions:            planOpts,
+			logger:                 logger,
+			tempDbStatementTimeout: tempDbStatementTimeout,
 		})
 		if err != nil {
 			return err
@@ -457,22 +461,27 @@ func parseInsertStatementStr(val string) (insertStatement, error) {
 }
 
 type generatePlanParameters struct {
-	fromSchema       schemaSourceFactory
-	toSchema         schemaSourceFactory
-	tempDbConnConfig *pgx.ConnConfig
-	planOptions      planOptions
-	logger           log.Logger
+	fromSchema              schemaSourceFactory
+	toSchema                schemaSourceFactory
+	tempDbConnConfig        *pgx.ConnConfig
+	planOptions             planOptions
+	logger                  log.Logger
+	tempDbStatementTimeout  time.Duration
 }
 
 func generatePlan(
 	ctx context.Context,
 	params generatePlanParameters,
 ) (diff.Plan, error) {
+	tempDbOpts := []tempdb.OnInstanceFactoryOpt{tempdb.WithRootDatabase(params.tempDbConnConfig.Database)}
+	if params.tempDbStatementTimeout > 0 {
+		tempDbOpts = append(tempDbOpts, tempdb.WithStatementTimeout(params.tempDbStatementTimeout))
+	}
 	tempDbFactory, err := tempdb.NewOnInstanceFactory(ctx, func(ctx context.Context, dbName string) (*sql.DB, error) {
 		cfg := params.tempDbConnConfig.Copy()
 		cfg.Database = dbName
 		return openDbWithPgxConfig(cfg)
-	}, tempdb.WithRootDatabase(params.tempDbConnConfig.Database))
+	}, tempDbOpts...)
 	if err != nil {
 		return diff.Plan{}, fmt.Errorf("creating temp db factory: %w", err)
 	}
