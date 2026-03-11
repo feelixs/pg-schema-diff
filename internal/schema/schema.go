@@ -145,6 +145,7 @@ func normalizeView(v View) View {
 		normTableDeps = append(normTableDeps, d)
 	}
 	v.TableDependencies = normTableDeps
+	v.FunctionDependencies = sortSchemaObjectsByName(v.FunctionDependencies)
 	return v
 }
 
@@ -155,6 +156,7 @@ func normalizeMaterializedView(mv MaterializedView) MaterializedView {
 		normTableDeps = append(normTableDeps, d)
 	}
 	mv.TableDependencies = normTableDeps
+	mv.FunctionDependencies = sortSchemaObjectsByName(mv.FunctionDependencies)
 	return mv
 }
 
@@ -531,6 +533,8 @@ type View struct {
 
 	// TableDependencies is a list of tables the view depends on.
 	TableDependencies []TableDependency
+	// FunctionDependencies is a list of functions the view calls directly.
+	FunctionDependencies []SchemaQualifiedName
 }
 
 type MaterializedView struct {
@@ -544,6 +548,8 @@ type MaterializedView struct {
 
 	// TableDependencies is a list of tables the materialized view depends on.
 	TableDependencies []TableDependency
+	// FunctionDependencies is a list of functions the materialized view calls directly.
+	FunctionDependencies []SchemaQualifiedName
 }
 
 type (
@@ -1503,12 +1509,18 @@ func (s *schemaFetcher) fetchViews(ctx context.Context) ([]View, error) {
 			return nil, fmt.Errorf("parsing schema qualified names JSON: %w", err)
 		}
 
+		functionDependencies, err := parseJSONFunctionDependencies(v.FunctionDependencies)
+		if err != nil {
+			return nil, fmt.Errorf("parsing function dependencies JSON: %w", err)
+		}
+
 		views = append(views, View{
 			SchemaQualifiedName: buildNameFromUnescaped(v.ViewName, v.SchemaName),
 			ViewDefinition:      v.ViewDefinition,
 			Options:             options,
 
-			TableDependencies: tableDependencies,
+			TableDependencies:    tableDependencies,
+			FunctionDependencies: functionDependencies,
 		})
 	}
 
@@ -1541,13 +1553,19 @@ func (s *schemaFetcher) fetchMaterializedViews(ctx context.Context) ([]Materiali
 			return nil, fmt.Errorf("parsing schema qualified names JSON: %w", err)
 		}
 
+		functionDependencies, err := parseJSONFunctionDependencies(mv.FunctionDependencies)
+		if err != nil {
+			return nil, fmt.Errorf("parsing function dependencies JSON: %w", err)
+		}
+
 		materializedViews = append(materializedViews, MaterializedView{
 			SchemaQualifiedName: buildNameFromUnescaped(mv.ViewName, mv.SchemaName),
 			ViewDefinition:      mv.ViewDefinition,
 			Options:             options,
 			Tablespace:          mv.TablespaceName,
 
-			TableDependencies: tableDependencies,
+			TableDependencies:    tableDependencies,
+			FunctionDependencies: functionDependencies,
 		})
 	}
 
@@ -1579,6 +1597,24 @@ func parseJSONTableDependencies(vals []string) ([]TableDependency, error) {
 			SchemaQualifiedName: buildNameFromUnescaped(s.Name, s.Schema),
 			Columns:             s.Columns,
 		})
+	}
+	return out, nil
+}
+
+// parseJSONFunctionDependencies takes a slice of JSON values with schema, name, and identity_arguments
+// and unmarshals them into SchemaQualifiedName using buildProcName (same format as function vertex IDs).
+func parseJSONFunctionDependencies(vals []string) ([]SchemaQualifiedName, error) {
+	var out []SchemaQualifiedName
+	for _, v := range vals {
+		var s struct {
+			Schema            string `json:"schema"`
+			Name              string `json:"name"`
+			IdentityArguments string `json:"identity_arguments"`
+		}
+		if err := json.Unmarshal([]byte(v), &s); err != nil {
+			return nil, fmt.Errorf("json.Unmarshal(%q, function dep): %w", string(v), err)
+		}
+		out = append(out, buildProcName(s.Name, s.IdentityArguments, s.Schema))
 	}
 	return out, nil
 }

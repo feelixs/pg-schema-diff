@@ -510,6 +510,76 @@ var viewAcceptanceTestCases = []acceptanceTestCase{
 		},
 	},
 	{
+		// LANGUAGE SQL functions: pg-schema-diff can track dependencies, so ordering should be correct.
+		name: "Drop view and the SQL function it calls - view must be dropped before function",
+		oldSchemaDDL: []string{
+			`
+            CREATE TABLE foobar(
+                id INT PRIMARY KEY,
+                foo INT NOT NULL,
+                bar INT NOT NULL
+            );
+
+            CREATE FUNCTION double_foo(val integer) RETURNS integer
+                LANGUAGE SQL
+                IMMUTABLE
+                RETURNS NULL ON NULL INPUT
+                RETURN val * 2;
+
+            CREATE VIEW foobar_view AS
+                SELECT id, double_foo(foo) AS doubled_foo, bar
+                FROM foobar;
+			`,
+		},
+		newSchemaDDL: []string{
+			`
+            CREATE TABLE foobar(
+                id INT PRIMARY KEY,
+                foo INT NOT NULL,
+                bar INT NOT NULL
+            );
+			`,
+		},
+	},
+	{
+		// LANGUAGE plpgsql functions: pg-schema-diff marks these HAS_UNTRACKABLE_DEPENDENCIES and
+		// may emit DROP FUNCTION before DROP VIEW. PostgreSQL will reject this with:
+		//   "cannot drop function X because other objects depend on it"
+		// This test ensures the drop ordering is correct even for non-SQL language functions.
+		name: "Drop view and the plpgsql function it calls - view must be dropped before function",
+		oldSchemaDDL: []string{
+			`
+            CREATE TABLE foobar(
+                id INT PRIMARY KEY,
+                foo INT NOT NULL,
+                bar INT NOT NULL
+            );
+
+            CREATE FUNCTION double_foo(val integer) RETURNS integer AS $$
+                BEGIN
+                    RETURN val * 2;
+                END;
+            $$ LANGUAGE plpgsql IMMUTABLE;
+
+            CREATE VIEW foobar_view AS
+                SELECT id, double_foo(foo) AS doubled_foo, bar
+                FROM foobar;
+			`,
+		},
+		newSchemaDDL: []string{
+			`
+            CREATE TABLE foobar(
+                id INT PRIMARY KEY,
+                foo INT NOT NULL,
+                bar INT NOT NULL
+            );
+			`,
+		},
+		expectedHazardTypes: []diff.MigrationHazardType{
+			diff.MigrationHazardTypeHasUntrackableDependencies,
+		},
+	},
+	{
 		name: "alter - remove check option",
 		oldSchemaDDL: []string{
 			`

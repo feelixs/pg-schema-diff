@@ -635,6 +635,21 @@ SELECT
     -- Instead, they must be unmarshalled as string arrays.
     -- https://github.com/lib/pq/pull/466
     WHERE d.refobjid = c.oid)::TEXT [] AS table_dependencies,
+    (SELECT
+        ARRAY_AGG(DISTINCT JSONB_BUILD_OBJECT(
+            'schema', dep_ns.nspname,
+            'name', dep_p.proname,
+            'identity_arguments', pg_catalog.pg_get_function_identity_arguments(dep_p.oid)
+        ))
+    FROM pg_catalog.pg_rewrite AS r
+    INNER JOIN pg_catalog.pg_depend AS d
+        ON d.classid = 'pg_rewrite'::REGCLASS
+        AND d.objid = r.oid
+        AND d.refclassid = 'pg_proc'::REGCLASS
+        AND d.deptype = 'n'
+    INNER JOIN pg_catalog.pg_proc AS dep_p ON d.refobjid = dep_p.oid
+    INNER JOIN pg_catalog.pg_namespace AS dep_ns ON dep_p.pronamespace = dep_ns.oid
+    WHERE r.ev_class = c.oid)::TEXT [] AS function_dependencies,
     PG_GET_VIEWDEF(c.oid, true) AS view_definition
 FROM pg_catalog.pg_class AS c
 INNER JOIN pg_catalog.pg_namespace AS n ON c.relnamespace = n.oid
@@ -655,12 +670,13 @@ WHERE
 `
 
 type GetMaterializedViewsRow struct {
-	SchemaName        string
-	ViewName          string
-	RelOptions        []string
-	TablespaceName    string
-	TableDependencies []string
-	ViewDefinition    string
+	SchemaName           string
+	ViewName             string
+	RelOptions           []string
+	TablespaceName       string
+	TableDependencies    []string
+	FunctionDependencies []string
+	ViewDefinition       string
 }
 
 func (q *Queries) GetMaterializedViews(ctx context.Context) ([]GetMaterializedViewsRow, error) {
@@ -678,6 +694,7 @@ func (q *Queries) GetMaterializedViews(ctx context.Context) ([]GetMaterializedVi
 			pq.Array(&i.RelOptions),
 			&i.TablespaceName,
 			pq.Array(&i.TableDependencies),
+			pq.Array(&i.FunctionDependencies),
 			&i.ViewDefinition,
 		); err != nil {
 			return nil, err
@@ -1303,6 +1320,21 @@ SELECT
     -- Instead, they must be unmarshalled as string arrays.
     -- https://github.com/lib/pq/pull/466
     WHERE d.refobjid = c.oid)::TEXT [] AS table_dependencies,
+    (SELECT
+        ARRAY_AGG(DISTINCT JSONB_BUILD_OBJECT(
+            'schema', dep_ns.nspname,
+            'name', dep_p.proname,
+            'identity_arguments', pg_catalog.pg_get_function_identity_arguments(dep_p.oid)
+        ))
+    FROM pg_catalog.pg_rewrite AS r
+    INNER JOIN pg_catalog.pg_depend AS d
+        ON d.classid = 'pg_rewrite'::REGCLASS
+        AND d.objid = r.oid
+        AND d.refclassid = 'pg_proc'::REGCLASS
+        AND d.deptype = 'n'
+    INNER JOIN pg_catalog.pg_proc AS dep_p ON d.refobjid = dep_p.oid
+    INNER JOIN pg_catalog.pg_namespace AS dep_ns ON dep_p.pronamespace = dep_ns.oid
+    WHERE r.ev_class = c.oid)::TEXT [] AS function_dependencies,
     PG_GET_VIEWDEF(c.oid, true) AS view_definition
 FROM pg_catalog.pg_class AS c
 INNER JOIN pg_catalog.pg_namespace AS n ON c.relnamespace = n.oid
@@ -1322,11 +1354,12 @@ WHERE
 `
 
 type GetViewsRow struct {
-	SchemaName        string
-	ViewName          string
-	RelOptions        []string
-	TableDependencies []string
-	ViewDefinition    string
+	SchemaName           string
+	ViewName             string
+	RelOptions           []string
+	TableDependencies    []string
+	FunctionDependencies []string
+	ViewDefinition       string
 }
 
 func (q *Queries) GetViews(ctx context.Context) ([]GetViewsRow, error) {
@@ -1343,6 +1376,7 @@ func (q *Queries) GetViews(ctx context.Context) ([]GetViewsRow, error) {
 			&i.ViewName,
 			pq.Array(&i.RelOptions),
 			pq.Array(&i.TableDependencies),
+			pq.Array(&i.FunctionDependencies),
 			&i.ViewDefinition,
 		); err != nil {
 			return nil, err
