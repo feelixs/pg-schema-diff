@@ -138,6 +138,12 @@ func (vsg *viewSQLGenerator) Delete(v schema.View) (partialSQLGraph, error) {
 		deps = append(deps, mustRun(deleteVertexId).before(buildTableVertexId(t.SchemaQualifiedName, diffTypeDelete)))
 		deps = append(deps, mustRun(deleteVertexId).before(buildTableVertexId(t.SchemaQualifiedName, diffTypeAddAlter)))
 	}
+	// Run before any functions the view calls are dropped. Without this, pg-schema-diff may emit
+	// DROP FUNCTION before DROP VIEW for non-SQL (e.g. plpgsql) functions, causing PostgreSQL to
+	// reject the drop with "cannot drop function X because other objects depend on it".
+	for _, f := range v.FunctionDependencies {
+		deps = append(deps, mustRun(deleteVertexId).before(buildFunctionVertexId(f, diffTypeDelete)))
+	}
 
 	return partialSQLGraph{
 		vertices: []sqlVertex{{
